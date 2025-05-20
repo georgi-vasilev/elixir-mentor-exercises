@@ -2,14 +2,20 @@ defmodule CartServer do
   use GenServer
 
   # client
-  def start_link do
-    GenServer.start_link(CartServer, %{}, name: :cart_server)
+  def start_link(name) do
+    IO.puts("Cart server starting...")
+    GenServer.start_link(CartServer, %{}, name: name)
   end
 
-  def cart_total, do: GenServer.call(:cart_server, :total)
+  def start_child(name) when is_atom(name) do
+    IO.puts("Cart Server: #{name} is starting...")
+    DynamicSupervisor.start_child(:dynamic_cart_sup, {CartServer, name})
+  end
 
-  def add_item(item) do
-    GenServer.cast(:cart_server, {:add_item, item})
+  def cart_total(cart_id) when is_atom(cart_id), do: GenServer.call(cart_id, :total)
+
+  def add_item(cart_id, item) when is_atom(cart_id) do
+    GenServer.cast(cart_id, {:add_item, item})
   end
 
   # callbacks
@@ -40,6 +46,18 @@ defmodule CartServer do
   def handle_info(:reminder, state) do
     IO.puts("Don't forget about those items you need!")
     {:noreply, state}
+  end
+
+  def child_spec(name) do
+    %{
+      # by default the id is module name
+      id: __MODULE__,
+      restart: :permanent,
+      shutdown: 5000,
+      start: {__MODULE__, :start_link, [name]},
+      # all processes are workers except for supervisors.
+      type: :worker
+    }
   end
 
   defp reminder_timer(state) do
