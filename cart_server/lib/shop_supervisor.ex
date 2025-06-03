@@ -9,7 +9,8 @@ defmodule ShopSupervisor do
 
   def init(_init_arg) do
     children = [
-     CartSupervisor
+     CartSupervisor,
+      VisitorTracker
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
